@@ -3,177 +3,184 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
-  Menu,
-  X,
-  FileText,
-  Receipt,
-  FileCheck,
-  Building2,
-  Calculator,
-  BarChart3,
-  ChevronDown,
-  Check,
-  ArrowRight,
-  MessageCircle,
-  HelpCircle,
+  Menu, X, FileText, Receipt, FileCheck, Building2, Calculator, BarChart3,
+  ChevronDown, Check, ArrowRight, MessageCircle, Star, Shield, Mail,
+  Twitter, Linkedin, Instagram, Lock, Zap, Users, Award, TrendingUp,
+  Bell, CheckCircle2, AlertCircle, ChevronRight,
 } from "lucide-react";
 
-// Smooth scroll observer for fade-in animations
-function useIntersectionObserver() {
+// ─── Utilities ───────────────────────────────────────────────────────────────
+
+function useIntersectionObserver(threshold = 0.15) {
   const ref = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
-
   useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-          observer.unobserve(entry.target);
-        }
+        if (entry.isIntersecting) { setIsVisible(true); observer.unobserve(el); }
       },
-      { threshold: 0.1 }
+      { threshold }
     );
-
-    if (ref.current) {
-      observer.observe(ref.current);
-    }
-
-    return () => {
-      if (ref.current) {
-        observer.unobserve(ref.current);
-      }
-    };
-  }, []);
-
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [threshold]);
   return { ref, isVisible };
 }
 
-function FadeInSection({ children }: { children: React.ReactNode }) {
+function useCountUp(target: number, duration = 2000, started = false) {
+  const [value, setValue] = useState(0);
+  useEffect(() => {
+    if (!started) return;
+    if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setValue(target);
+      return;
+    }
+    const start = performance.now();
+    const tick = (now: number) => {
+      const p = Math.min((now - start) / duration, 1);
+      const eased = 1 - (1 - p) ** 3;
+      setValue(Math.round(eased * target));
+      if (p < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }, [target, duration, started]);
+  return value;
+}
+
+function FadeUp({
+  children,
+  delay = 0,
+  className = "",
+}: {
+  children: React.ReactNode;
+  delay?: number;
+  className?: string;
+}) {
   const { ref, isVisible } = useIntersectionObserver();
   return (
     <div
       ref={ref}
-      className={`transition-all duration-700 ${
-        isVisible
-          ? "opacity-100 translate-y-0"
-          : "opacity-0 translate-y-10"
-      }`}
+      className={`motion-safe:transition-[opacity,transform] motion-safe:duration-700 ${
+        isVisible ? "" : "motion-safe:opacity-0 motion-safe:translate-y-8"
+      } ${className}`}
+      style={{ transitionDelay: `${delay}ms` }}
     >
       {children}
     </div>
   );
 }
 
-// Navigation Bar
+// ─── Navbar ──────────────────────────────────────────────────────────────────
+
 function Navbar() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  const scrollToSection = (sectionId: string) => {
-    const element = document.getElementById(sectionId);
-    if (element) {
-      element.scrollIntoView({ behavior: "smooth" });
-      setMobileMenuOpen(false);
-    }
+  const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const handler = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", handler, { passive: true });
+    return () => window.removeEventListener("scroll", handler);
+  }, []);
+  const scroll = (id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+    setOpen(false);
   };
-
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-b border-border">
+    <nav
+      className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${
+        scrolled
+          ? "bg-white/95 backdrop-blur-md shadow-sm border-b border-border"
+          : "bg-transparent"
+      }`}
+      aria-label="Navegação principal"
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2 focus:outline-none focus:ring-2 focus:ring-primary rounded">
-            <div className="text-2xl font-bold">
-              <span className="text-primary">+</span>
-              <span className="text-foreground">NOTA</span>
-            </div>
+          <Link
+            href="/"
+            className="flex items-center gap-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-md px-1"
+          >
+            <span className="text-2xl font-black text-primary leading-none">+</span>
+            <span className="text-2xl font-black text-foreground leading-none">NOTA</span>
           </Link>
 
-          {/* Desktop Menu */}
-          <div className="hidden md:flex items-center space-x-8">
-            <button
-              onClick={() => scrollToSection("features")}
-              className="text-foreground/70 hover:text-foreground text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-primary rounded px-2 py-1"
-            >
-              Features
-            </button>
-            <button
-              onClick={() => scrollToSection("pricing")}
-              className="text-foreground/70 hover:text-foreground text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-primary rounded px-2 py-1"
-            >
-              Preços
-            </button>
-            <button
-              onClick={() => scrollToSection("faq")}
-              className="text-foreground/70 hover:text-foreground text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-primary rounded px-2 py-1"
-            >
-              FAQ
-            </button>
+          <div className="hidden md:flex items-center gap-8">
+            {(
+              [
+                ["features", "Funcionalidades"],
+                ["pricing", "Preços"],
+                ["faq", "FAQ"],
+              ] as [string, string][]
+            ).map(([id, label]) => (
+              <button
+                key={id}
+                onClick={() => scroll(id)}
+                className="text-sm font-medium text-foreground/60 hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded px-2 py-1"
+              >
+                {label}
+              </button>
+            ))}
           </div>
 
-          {/* Buttons */}
-          <div className="hidden md:flex items-center space-x-4">
+          <div className="hidden md:flex items-center gap-3">
             <Link
               href="/login"
-              className="px-4 py-2 text-sm font-medium border border-border rounded-lg text-foreground hover:bg-muted transition focus:outline-none focus:ring-2 focus:ring-primary"
+              className="px-4 py-2 text-sm font-semibold text-foreground hover:text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg"
             >
               Entrar
             </Link>
             <Link
               href="/login"
-              className="px-6 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+              className="px-5 py-2 text-sm font-semibold bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
             >
               Começar grátis
             </Link>
           </div>
 
-          {/* Mobile Menu Button */}
-          <div className="md:hidden">
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 text-foreground"
-              aria-label={mobileMenuOpen ? "Fechar menu" : "Abrir menu"}
-              aria-expanded={mobileMenuOpen}
-            >
-              {mobileMenuOpen ? (
-                <X className="w-6 h-6" aria-hidden="true" />
-              ) : (
-                <Menu className="w-6 h-6" aria-hidden="true" />
-              )}
-            </button>
-          </div>
+          <button
+            onClick={() => setOpen(!open)}
+            aria-expanded={open}
+            aria-label={open ? "Fechar menu" : "Abrir menu"}
+            className="md:hidden p-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          >
+            {open ? (
+              <X className="w-5 h-5" aria-hidden />
+            ) : (
+              <Menu className="w-5 h-5" aria-hidden />
+            )}
+          </button>
         </div>
 
-        {/* Mobile Menu */}
-        {mobileMenuOpen && (
-          <div className="md:hidden pb-4 space-y-2">
-            <button
-              onClick={() => scrollToSection("features")}
-              className="block w-full text-left px-4 py-2 text-sm text-foreground/70 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-inset"
-            >
-              Features
-            </button>
-            <button
-              onClick={() => scrollToSection("pricing")}
-              className="block w-full text-left px-4 py-2 text-sm text-foreground/70 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-inset"
-            >
-              Preços
-            </button>
-            <button
-              onClick={() => scrollToSection("faq")}
-              className="block w-full text-left px-4 py-2 text-sm text-foreground/70 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-inset"
-            >
-              FAQ
-            </button>
-            <div className="pt-2 space-y-2">
+        {open && (
+          <div className="md:hidden pb-4 border-x border-b border-border bg-white/98 rounded-b-xl">
+            <div className="space-y-1 px-2 py-2">
+              {(
+                [
+                  ["features", "Funcionalidades"],
+                  ["pricing", "Preços"],
+                  ["faq", "FAQ"],
+                ] as [string, string][]
+              ).map(([id, label]) => (
+                <button
+                  key={id}
+                  onClick={() => scroll(id)}
+                  className="block w-full text-left px-4 py-2.5 text-sm font-medium text-foreground/70 hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <div className="px-4 pt-2 flex flex-col gap-2">
               <Link
                 href="/login"
-                className="block px-4 py-2 text-sm font-medium border border-border rounded-lg text-foreground text-center focus:outline-none focus:ring-2 focus:ring-primary focus:ring-inset"
+                className="block py-2.5 text-sm font-semibold text-center border border-border rounded-xl hover:bg-muted transition-colors"
               >
                 Entrar
               </Link>
               <Link
                 href="/login"
-                className="block px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                className="block py-2.5 text-sm font-semibold text-center bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-colors"
               >
                 Começar grátis
               </Link>
@@ -185,678 +192,875 @@ function Navbar() {
   );
 }
 
-// Hero Section with Dashboard Mockup
+// ─── Hero ────────────────────────────────────────────────────────────────────
+
 function Hero() {
   return (
-    <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8 bg-background">
-      <div className="max-w-7xl mx-auto">
-        <FadeInSection>
-          <div className="text-center mb-12">
-            {/* Badge */}
-            <div className="inline-flex items-center space-x-2 px-4 py-2 rounded-full bg-accent/10 border border-accent/30 mb-6">
-              <span className="w-2 h-2 rounded-full bg-primary" />
-              <span className="text-sm font-medium text-foreground/80">
-                Novo! Emissão de NFS-e Nacional integrada
+    <section
+      className="relative pt-28 pb-0 px-4 sm:px-6 lg:px-8 overflow-hidden bg-white"
+      aria-label="Início"
+    >
+      <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden>
+        <div className="absolute -top-40 -right-40 w-[600px] h-[600px] rounded-full bg-primary/5 blur-3xl" />
+        <div className="absolute top-20 -left-32 w-[400px] h-[400px] rounded-full bg-accent/5 blur-3xl" />
+        <svg className="absolute inset-0 w-full h-full opacity-[0.025]" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern id="hero-dots" width="32" height="32" patternUnits="userSpaceOnUse">
+              <circle cx="2" cy="2" r="1.5" fill="currentColor" />
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#hero-dots)" />
+        </svg>
+      </div>
+
+      <div className="max-w-7xl mx-auto relative">
+        <div className="text-center max-w-4xl mx-auto">
+          <FadeUp>
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/8 border border-primary/20 mb-8 text-sm font-semibold text-primary">
+              <span className="relative flex h-2 w-2" aria-hidden>
+                <span className="motion-safe:animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
               </span>
+              Novo! Emissão de NFS-e Nacional integrada
+              <ChevronRight className="w-3.5 h-3.5" aria-hidden />
             </div>
+          </FadeUp>
 
-            {/* Title */}
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground mb-6 leading-tight">
-              Emita notas fiscais
-              <br />
-              <span className="text-primary">sem complicação</span>
+          <FadeUp delay={80}>
+            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black text-foreground leading-[1.04] tracking-tight mb-6 text-balance">
+              Emita notas fiscais{" "}
+              <span className="relative inline-block">
+                <span className="text-primary">sem complicação</span>
+                <svg
+                  className="absolute -bottom-2 left-0 w-full h-3 text-primary/30"
+                  viewBox="0 0 300 12"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden
+                  preserveAspectRatio="none"
+                >
+                  <path
+                    d="M2 9C60 4 120 2 160 4C200 6 250 8 298 5"
+                    stroke="currentColor"
+                    strokeWidth="3.5"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </span>
             </h1>
+          </FadeUp>
 
-            {/* Subtitle */}
-            <p className="text-lg text-foreground/70 max-w-2xl mx-auto mb-8">
+          <FadeUp delay={160}>
+            <p className="text-lg sm:text-xl text-foreground/60 max-w-2xl mx-auto mb-10 text-pretty leading-relaxed">
               NF-e, NFC-e e NFS-e em poucos cliques. O sistema fiscal mais
               simples do Brasil para contadores e empresas.
             </p>
+          </FadeUp>
 
-            {/* CTAs */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+          <FadeUp delay={220}>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center mb-14">
               <Link
                 href="/login"
-                className="px-8 py-4 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 transition flex items-center justify-center space-x-2"
+                className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-primary text-primary-foreground rounded-xl font-semibold text-base hover:bg-primary/90 active:scale-[0.98] transition-all shadow-lg shadow-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
               >
-                <span>Começar grátis</span>
-                <ArrowRight className="w-5 h-5" aria-hidden="true" />
+                Começar grátis
+                <ArrowRight className="w-5 h-5" aria-hidden />
               </Link>
-              <button className="px-8 py-4 border-2 border-primary text-primary rounded-lg font-semibold hover:bg-primary/5 transition focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
+              <button className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-foreground/5 text-foreground rounded-xl font-semibold text-base hover:bg-foreground/10 active:scale-[0.98] transition-all border border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
                 Ver demonstração
               </button>
             </div>
-          </div>
+          </FadeUp>
 
-          {/* Dashboard Mockup */}
-          <div className="relative mx-auto max-w-4xl">
-            <div className="rounded-2xl border border-border bg-white shadow-2xl overflow-hidden">
-              {/* Mockup Header */}
-              <div className="bg-foreground/5 border-b border-border px-6 py-4 flex items-center space-x-3">
-                <div className="w-3 h-3 rounded-full bg-destructive" />
-                <div className="w-3 h-3 rounded-full bg-warning" />
-                <div className="w-3 h-3 rounded-full bg-success" />
-                <span className="text-xs text-foreground/50 ml-4">
-                  dashboard.nota.com
+          <FadeUp delay={300}>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16 text-sm text-foreground/50">
+              <div className="flex -space-x-2" aria-hidden>
+                {(["bg-primary", "bg-blue-500", "bg-emerald-500", "bg-violet-500", "bg-amber-500"] as string[]).map(
+                  (bg, i) => (
+                    <div
+                      key={i}
+                      className={`w-8 h-8 rounded-full border-2 border-white ${bg} flex items-center justify-center text-xs font-bold text-white`}
+                    >
+                      {["A", "B", "C", "D", "E"][i]}
+                    </div>
+                  )
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="flex gap-0.5" aria-label="5 de 5 estrelas">
+                  {Array(5).fill(0).map((_, i) => (
+                    <Star key={i} className="w-4 h-4 fill-warning text-warning" aria-hidden />
+                  ))}
+                </div>
+                <span>
+                  <strong className="text-foreground tabular-nums">500+</strong>{" "}
+                  empresas e contadores confiam no +NOTA
                 </span>
               </div>
+            </div>
+          </FadeUp>
+        </div>
 
-              {/* Mockup Content */}
-              <div className="p-8">
-                {/* Header Row */}
-                <div className="flex justify-between items-center mb-8">
-                  <div>
-                    <h2 className="text-2xl font-bold text-foreground">
-                      Dashboard
-                    </h2>
-                    <p className="text-sm text-foreground/60">
-                      Bem-vindo de volta, Contador Silva
-                    </p>
+        {/* Dashboard Mockup */}
+        <FadeUp delay={380}>
+          <div className="relative max-w-5xl mx-auto">
+            <div
+              className="absolute -inset-4 bg-gradient-to-t from-primary/10 via-transparent to-transparent rounded-3xl blur-2xl -z-10"
+              aria-hidden
+            />
+            <div
+              className="rounded-t-2xl border border-border/80 bg-white shadow-[0_32px_80px_-12px_rgba(0,0,0,0.14),0_0_0_1px_rgba(0,0,0,0.03)] overflow-hidden"
+              style={{ transform: "perspective(1800px) rotateX(3deg)" }}
+            >
+              {/* Browser bar */}
+              <div className="flex items-center gap-3 px-5 py-3 bg-muted border-b border-border">
+                <div className="flex gap-1.5" aria-hidden>
+                  <div className="w-3 h-3 rounded-full bg-destructive/50" />
+                  <div className="w-3 h-3 rounded-full bg-warning/50" />
+                  <div className="w-3 h-3 rounded-full bg-success/50" />
+                </div>
+                <div className="flex-1 flex justify-center">
+                  <div className="bg-white rounded-md px-3 py-1 text-xs text-foreground/40 flex items-center gap-1.5 max-w-xs w-full border border-border/60">
+                    <Lock className="w-3 h-3" aria-hidden />
+                    app.maisnota.com.br
                   </div>
-                  <div className="flex space-x-2">
-                    <div className="w-10 h-10 rounded-full bg-primary/20" />
-                    <div className="w-10 h-10 rounded-full bg-accent/20" />
+                </div>
+              </div>
+
+              {/* Dashboard content */}
+              <div className="p-5 bg-muted/20">
+                <div className="flex items-center justify-between mb-5">
+                  <div>
+                    <p className="text-[11px] font-semibold text-foreground/40 uppercase tracking-wider mb-0.5">Dashboard</p>
+                    <h2 className="text-lg font-bold text-foreground">Bom dia, Contador Silva 👋</h2>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-success/10 flex items-center justify-center">
+                      <Bell className="w-4 h-4 text-success" aria-hidden />
+                    </div>
+                    <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-[11px] font-bold text-white">
+                      CS
+                    </div>
                   </div>
                 </div>
 
-                {/* Stats Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
                   {[
-                    { label: "Notas Emitidas", value: "248", color: "bg-primary" },
-                    {
-                      label: "Faturamento",
-                      value: "R$ 48.2K",
-                      color: "bg-success",
-                    },
-                    {
-                      label: "Empresas Ativas",
-                      value: "5",
-                      color: "bg-accent",
-                    },
-                    { label: "Taxa Sucesso", value: "99.8%", color: "bg-warning" },
-                  ].map((stat, idx) => (
-                    <div
-                      key={idx}
-                      className="bg-muted rounded-lg p-4 border border-border"
-                    >
-                      <p className="text-xs font-medium text-foreground/60 mb-2">
-                        {stat.label}
-                      </p>
-                      <div className="flex items-end justify-between">
-                        <p className="text-2xl font-bold text-foreground">
-                          {stat.value}
-                        </p>
-                        <div className={`w-2 h-8 rounded-full ${stat.color}`} />
+                    { label: "Notas emitidas", value: "248", sub: "+12%", Icon: FileText, iconBg: "bg-primary/10", iconColor: "text-primary" },
+                    { label: "Faturamento", value: "R$ 48K", sub: "+8%", Icon: TrendingUp, iconBg: "bg-success/10", iconColor: "text-success" },
+                    { label: "Empresas ativas", value: "5", sub: "clientes", Icon: Building2, iconBg: "bg-blue-50", iconColor: "text-blue-500" },
+                    { label: "Taxa SEFAZ", value: "99.8%", sub: "aprovação", Icon: Award, iconBg: "bg-warning/10", iconColor: "text-warning" },
+                  ].map((s, i) => (
+                    <div key={i} className="bg-white rounded-xl p-3.5 border border-border/60 shadow-sm">
+                      <div className={`w-7 h-7 rounded-lg ${s.iconBg} flex items-center justify-center mb-2.5`}>
+                        <s.Icon className={`w-3.5 h-3.5 ${s.iconColor}`} aria-hidden />
                       </div>
+                      <p className="text-[11px] text-foreground/50 mb-0.5">{s.label}</p>
+                      <p className="text-base font-bold text-foreground tabular-nums">{s.value}</p>
+                      <p className="text-[11px] text-success font-medium">{s.sub}</p>
                     </div>
                   ))}
                 </div>
 
-                {/* Chart Mockup */}
-                <div className="bg-muted rounded-lg p-6 border border-border">
-                  <h3 className="text-sm font-semibold text-foreground mb-4">
-                    Emissões por mês
-                  </h3>
-                  <div className="flex items-end space-x-2 h-32">
-                    {[
-                      40, 35, 42, 38, 45, 50, 48, 52, 55, 58, 60, 62,
-                    ].map((height, idx) => (
-                      <div
-                        key={idx}
-                        className="flex-1 bg-gradient-to-t from-primary to-accent rounded-t"
-                        style={{ height: `${height}%` }}
-                      />
-                    ))}
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="col-span-2 bg-white rounded-xl p-4 border border-border/60 shadow-sm">
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-xs font-semibold text-foreground">Emissões por mês</p>
+                      <span className="text-xs text-primary font-medium">2024</span>
+                    </div>
+                    <div className="flex items-end gap-1 h-16" role="img" aria-label="Gráfico de emissões mensais">
+                      {[30, 42, 38, 55, 48, 60, 52, 58, 65, 70, 68, 75].map((h, i) => (
+                        <div
+                          key={i}
+                          className="flex-1 rounded-sm"
+                          style={{
+                            height: `${h}%`,
+                            background: i === 11 ? "hsl(var(--primary))" : "hsl(var(--primary)/0.25)",
+                          }}
+                          aria-hidden
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  <div className="bg-white rounded-xl p-4 border border-border/60 shadow-sm">
+                    <p className="text-xs font-semibold text-foreground mb-3">Recentes</p>
+                    <div className="space-y-2.5">
+                      {[
+                        { type: "NF-e #0248", status: "Autorizada", ok: true },
+                        { type: "NFC-e #0247", status: "Autorizada", ok: true },
+                        { type: "NFS-e #0246", status: "Pendente", ok: false },
+                      ].map((n, i) => (
+                        <div key={i} className="flex items-center justify-between">
+                          <span className="text-[11px] text-foreground/60">{n.type}</span>
+                          <span className={`text-[11px] font-semibold ${n.ok ? "text-success" : "text-warning"}`}>
+                            {n.status}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Floating Cards */}
-            <div className="absolute -bottom-6 -left-6 bg-white rounded-lg shadow-xl border border-border p-4 max-w-xs hidden lg:block">
-              <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 bg-success/20 rounded-lg flex items-center justify-center">
-                  <Check className="w-6 h-6 text-success" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-foreground">
-                    NF-e Autorizada
-                  </p>
-                  <p className="text-xs text-foreground/60">
-                    Há 2 minutos
-                  </p>
-                </div>
+            {/* Floating badge — success */}
+            <div
+              className="absolute -bottom-4 -left-4 lg:-left-16 bg-white rounded-2xl shadow-xl border border-border p-3.5 hidden lg:flex items-center gap-3 z-10"
+              aria-hidden
+            >
+              <div className="w-10 h-10 rounded-xl bg-success/10 flex items-center justify-center flex-shrink-0">
+                <CheckCircle2 className="w-5 h-5 text-success" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-foreground">NF-e Autorizada!</p>
+                <p className="text-[11px] text-foreground/50">Protocolo SEFAZ recebido</p>
+              </div>
+            </div>
+
+            {/* Floating badge — speed */}
+            <div
+              className="absolute -bottom-4 -right-4 lg:-right-16 bg-white rounded-2xl shadow-xl border border-border p-3.5 hidden lg:flex items-center gap-3 z-10"
+              aria-hidden
+            >
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <Zap className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-foreground tabular-nums">{"< 5 segundos"}</p>
+                <p className="text-[11px] text-foreground/50">por emissão</p>
               </div>
             </div>
           </div>
-        </FadeInSection>
+        </FadeUp>
       </div>
     </section>
   );
 }
 
-// Features Section
-function Features() {
-  const features = [
-    {
-      icon: FileText,
-      title: "NF-e de Venda",
-      description:
-        "Emissão completa de NF-e modelo 55 com cálculo automático de impostos e transmissão à SEFAZ",
-    },
-    {
-      icon: Receipt,
-      title: "NFC-e / Cupom Fiscal",
-      description:
-        "NFC-e modelo 65 para vendas ao consumidor final com QR Code e DANFCE",
-    },
-    {
-      icon: FileCheck,
-      title: "NFS-e de Serviço",
-      description:
-        "Nota fiscal de serviço eletrônica integrada ao padrão nacional",
-    },
-    {
-      icon: Building2,
-      title: "Multi-empresa",
-      description:
-        "Gerencie múltiplas empresas. Ideal para escritórios de contabilidade",
-    },
-    {
-      icon: Calculator,
-      title: "Cálculo de Impostos",
-      description:
-        "ICMS, PIS, COFINS calculados automaticamente conforme o regime tributário",
-    },
-    {
-      icon: BarChart3,
-      title: "Dashboard Inteligente",
-      description:
-        "Visão completa de notas emitidas, faturamento e alertas importantes",
-    },
-  ];
+// ─── Stats ───────────────────────────────────────────────────────────────────
 
+function StatCard({
+  target,
+  format,
+  label,
+  sublabel,
+}: {
+  target: number;
+  format: (n: number) => string;
+  label: string;
+  sublabel: string;
+}) {
+  const { ref, isVisible } = useIntersectionObserver(0.3);
+  const count = useCountUp(target, 2000, isVisible);
   return (
-    <section
-      id="features"
-      className="py-20 px-4 sm:px-6 lg:px-8 bg-background"
-    >
-      <div className="max-w-7xl mx-auto">
-        <FadeInSection>
-          <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
-              Tudo que você precisa
-            </h2>
-            <p className="text-lg text-foreground/60">
-              Recursos completos para gerenciar suas emissões fiscais de forma
-              simples e profissional
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {features.map((feature, idx) => {
-              const Icon = feature.icon;
-              return (
-                <FadeInSection key={idx}>
-                  <div className="bg-white border border-border rounded-xl p-6 hover:shadow-lg hover:border-primary/20 transition group">
-                    <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4 group-hover:bg-primary/20 transition">
-                      <Icon className="w-6 h-6 text-primary" />
-                    </div>
-                    <h3 className="text-lg font-semibold text-foreground mb-2">
-                      {feature.title}
-                    </h3>
-                    <p className="text-foreground/60 text-sm">
-                      {feature.description}
-                    </p>
-                  </div>
-                </FadeInSection>
-              );
-            })}
-          </div>
-        </FadeInSection>
-      </div>
-    </section>
+    <div ref={ref} className="text-center px-6 py-8">
+      <p className="text-4xl sm:text-5xl font-black tabular-nums mb-1.5">
+        <span className="text-primary">{format(count)}</span>
+      </p>
+      <p className="font-semibold text-foreground text-base mb-1">{label}</p>
+      <p className="text-sm text-foreground/50">{sublabel}</p>
+    </div>
   );
 }
 
-// How It Works Section
-function HowItWorks() {
-  const steps = [
-    {
-      number: 1,
-      title: "Cadastre sua empresa",
-      description:
-        "Informe CNPJ, regime tributário e certificado digital",
-    },
-    {
-      number: 2,
-      title: "Adicione produtos e clientes",
-      description:
-        "Cadastre seu catálogo com NCM, CFOP e dados fiscais",
-    },
-    {
-      number: 3,
-      title: "Emita notas em poucos cliques",
-      description:
-        "Selecione o cliente, adicione itens e envie. Simples assim.",
-    },
-  ];
-
+function Stats() {
   return (
-    <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
-      <div className="max-w-7xl mx-auto">
-        <FadeInSection>
-          <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
-              Como funciona
-            </h2>
-            <p className="text-lg text-foreground/60">
-              Um processo simples em 3 passos
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {steps.map((step, idx) => (
-              <div key={idx} className="relative">
-                {/* Connecting line */}
-                {idx < steps.length - 1 && (
-                  <div className="hidden md:block absolute top-20 left-[60%] w-[80%] h-1 bg-gradient-to-r from-primary to-primary/0" />
-                )}
-
-                <FadeInSection>
-                  <div className="bg-background border border-border rounded-xl p-8 relative z-10 h-full">
-                    {/* Step Number */}
-                    <div className="w-16 h-16 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-2xl font-bold mb-6">
-                      {step.number}
-                    </div>
-                    <h3 className="text-xl font-semibold text-foreground mb-3">
-                      {step.title}
-                    </h3>
-                    <p className="text-foreground/60">
-                      {step.description}
-                    </p>
-                  </div>
-                </FadeInSection>
-              </div>
-            ))}
-          </div>
-        </FadeInSection>
-      </div>
-    </section>
-  );
-}
-
-// Pricing Section
-function Pricing() {
-  const [isAnnual, setIsAnnual] = useState(false);
-
-  return (
-    <section
-      id="pricing"
-      className="py-20 px-4 sm:px-6 lg:px-8 bg-background"
-    >
+    <section className="py-6 px-4 sm:px-6 lg:px-8 bg-white border-b border-border" aria-label="Métricas">
       <div className="max-w-5xl mx-auto">
-        <FadeInSection>
-          <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
-              Planos simples e transparentes
+        <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-y lg:divide-y-0 divide-border rounded-2xl overflow-hidden bg-muted/30 border border-border">
+          <StatCard target={500} format={(n) => `${n}+`} label="Empresas ativas" sublabel="e crescendo todo mês" />
+          <StatCard target={50000} format={(n) => `${n.toLocaleString("pt-BR")}+`} label="Notas emitidas" sublabel="com validade jurídica" />
+          <StatCard target={998} format={(n) => `${(n / 10).toFixed(1)}%`} label="Aprovação SEFAZ" sublabel="taxa de sucesso" />
+          <StatCard target={2} format={(n) => `< ${n}h`} label="Tempo de suporte" sublabel="resposta média" />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── Features (Bento Grid) ────────────────────────────────────────────────────
+
+const featureItems = [
+  {
+    Icon: FileText, title: "NF-e de Venda",
+    description: "Emissão completa de NF-e modelo 55 com cálculo automático de ICMS, PIS e COFINS. Transmissão direta à SEFAZ e DANFE em segundos.",
+    tag: "Mais usado", tagColor: "bg-primary/10 text-primary",
+    iconBg: "bg-primary/10", iconColor: "text-primary", wide: true,
+  },
+  {
+    Icon: Receipt, title: "NFC-e / Cupom Fiscal",
+    description: "NFC-e modelo 65 para PDVs com QR Code, DANFCE e integração SAT.",
+    tag: "Varejo", tagColor: "bg-blue-50 text-blue-600",
+    iconBg: "bg-blue-50", iconColor: "text-blue-500",
+  },
+  {
+    Icon: Building2, title: "Multi-empresa",
+    description: "Gerencie dezenas de clientes em um único painel. Ideal para contadores.",
+    tag: "Contadores", tagColor: "bg-violet-50 text-violet-600",
+    iconBg: "bg-violet-50", iconColor: "text-violet-500",
+  },
+  {
+    Icon: Calculator, title: "Impostos Automáticos",
+    description: "ICMS, PIS, COFINS calculados automaticamente por regime tributário.",
+    tag: "Inteligente", tagColor: "bg-rose-50 text-rose-600",
+    iconBg: "bg-rose-50", iconColor: "text-rose-500",
+  },
+  {
+    Icon: FileCheck, title: "NFS-e Nacional",
+    description: "Nota fiscal de serviço pelo padrão nacional. Validação e transmissão integradas.",
+    tag: "Serviços", tagColor: "bg-emerald-50 text-emerald-600",
+    iconBg: "bg-emerald-50", iconColor: "text-emerald-500",
+  },
+  {
+    Icon: BarChart3, title: "Dashboard Inteligente",
+    description: "Visualize notas emitidas, faturamento e alertas de vencimento em tempo real.",
+    tag: "Analytics", tagColor: "bg-amber-50 text-amber-600",
+    iconBg: "bg-amber-50", iconColor: "text-amber-500", wide: true,
+  },
+] as const;
+
+function Features() {
+  return (
+    <section id="features" className="py-24 px-4 sm:px-6 lg:px-8 bg-muted/30" aria-labelledby="features-title">
+      <div className="max-w-7xl mx-auto">
+        <FadeUp>
+          <div className="text-center mb-16">
+            <p className="text-sm font-bold text-primary uppercase tracking-widest mb-3">Funcionalidades</p>
+            <h2 id="features-title" className="text-3xl sm:text-4xl lg:text-5xl font-black text-foreground mb-4 text-balance">
+              Tudo que você precisa,<br />sem nada que não precisa
             </h2>
-            <p className="text-lg text-foreground/60 mb-8">
-              Escolha o plano perfeito para você
+            <p className="text-lg text-foreground/60 max-w-xl mx-auto text-pretty">
+              Recursos completos para emissão fiscal, sem complexidade desnecessária.
             </p>
-
-            {/* Toggle */}
-            <div className="inline-flex items-center gap-4 bg-muted rounded-full p-1" role="tablist">
-              <button
-                onClick={() => setIsAnnual(false)}
-                className={`px-6 py-2 rounded-full font-medium transition focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
-                  !isAnnual
-                    ? "bg-white text-primary shadow-md"
-                    : "text-foreground/60"
-                }`}
-                role="tab"
-                aria-selected={!isAnnual}
-                aria-label="Plano mensal"
-              >
-                Mensal
-              </button>
-              <button
-                onClick={() => setIsAnnual(true)}
-                className={`px-6 py-2 rounded-full font-medium transition focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
-                  isAnnual
-                    ? "bg-white text-primary shadow-md"
-                    : "text-foreground/60"
-                }`}
-                role="tab"
-                aria-selected={isAnnual}
-                aria-label="Plano anual"
-              >
-                Anual
-              </button>
-            </div>
-
-            {isAnnual && (
-              <p className="text-sm text-success font-medium mt-4">
-                💰 Economia de R$ 120/ano
-              </p>
-            )}
           </div>
+        </FadeUp>
 
-          {/* Pricing Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Free Plan */}
-            <FadeInSection>
-              <div className="bg-white border border-border rounded-2xl p-8 h-full flex flex-col">
-                <div className="mb-8">
-                  <h3 className="text-2xl font-bold text-foreground mb-2">
-                    Grátis
-                  </h3>
-                  <p className="text-4xl font-bold text-foreground">
-                    R$ 0<span className="text-lg text-foreground/60">/mês</span>
-                  </p>
-                </div>
-
-                <Link
-                  href="/login"
-                  className="w-full px-6 py-3 border-2 border-primary text-primary rounded-lg font-semibold hover:bg-primary/5 transition mb-8"
-                >
-                  Começar grátis
-                </Link>
-
-                <div className="space-y-4 flex-1">
-                  <p className="text-sm font-semibold text-foreground/60 mb-4">
-                    Incluído:
-                  </p>
-                  {[
-                    "1 nota por mês",
-                    "1 empresa",
-                    "10 produtos",
-                    "10 clientes",
-                    "Suporte comunidade",
-                  ].map((feature, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center space-x-3 text-foreground/70"
-                    >
-                      <Check className="w-5 h-5 text-success flex-shrink-0" />
-                      <span className="text-sm">{feature}</span>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {featureItems.map((item, idx) => (
+            <FadeUp key={idx} delay={idx * 60} className={"wide" in item && item.wide ? "sm:col-span-2 lg:col-span-2" : ""}>
+              <div className={`group h-full bg-white border border-border rounded-2xl p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col ${"wide" in item && item.wide ? "sm:flex-row sm:gap-8 sm:items-center" : ""}`}>
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className={`w-11 h-11 rounded-xl ${item.iconBg} flex items-center justify-center flex-shrink-0`}>
+                      <item.Icon className={`w-5 h-5 ${item.iconColor}`} aria-hidden />
                     </div>
-                  ))}
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${item.tagColor}`}>
+                      {item.tag}
+                    </span>
+                  </div>
+                  <h3 className="text-lg font-bold text-foreground mb-2">{item.title}</h3>
+                  <p className="text-sm text-foreground/60 leading-relaxed text-pretty">{item.description}</p>
                 </div>
+                {"wide" in item && item.wide && (
+                  <div className="hidden sm:flex flex-shrink-0 items-center justify-center" aria-hidden>
+                    <div className={`w-28 h-28 rounded-3xl ${item.iconBg} flex items-center justify-center`}>
+                      <item.Icon className={`w-14 h-14 ${item.iconColor} opacity-60`} />
+                    </div>
+                  </div>
+                )}
               </div>
-            </FadeInSection>
+            </FadeUp>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
 
-            {/* Pro Plan */}
-            <FadeInSection>
-              <div className="bg-white border-2 border-primary rounded-2xl p-8 h-full flex flex-col relative overflow-hidden">
-                {/* Highlight Badge */}
-                <div className="absolute -top-12 -right-12 w-32 h-32 bg-primary/10 rounded-full" />
-                <div className="absolute top-0 right-0 bg-primary text-primary-foreground px-4 py-1 text-xs font-semibold">
-                  Mais indicado
+// ─── How It Works ─────────────────────────────────────────────────────────────
+
+const steps = [
+  {
+    Icon: Building2, title: "Cadastre sua empresa",
+    description: "Informe CNPJ, regime tributário e faça upload do certificado digital A1. Em menos de 5 minutos você está pronto.",
+    iconColor: "text-primary", iconBg: "bg-primary/10", borderColor: "border-primary/20", numColor: "text-primary",
+  },
+  {
+    Icon: Users, title: "Adicione produtos e clientes",
+    description: "Cadastre seu catálogo com NCM, CFOP e dados fiscais. Importe planilhas ou adicione individualmente.",
+    iconColor: "text-blue-500", iconBg: "bg-blue-50", borderColor: "border-blue-100", numColor: "text-blue-500",
+  },
+  {
+    Icon: Zap, title: "Emita em poucos cliques",
+    description: "Selecione o cliente, adicione os itens e confirme. Receba o protocolo SEFAZ em segundos.",
+    iconColor: "text-success", iconBg: "bg-success/10", borderColor: "border-success/20", numColor: "text-success",
+  },
+];
+
+function HowItWorks() {
+  return (
+    <section className="py-24 px-4 sm:px-6 lg:px-8 bg-white" aria-labelledby="how-title">
+      <div className="max-w-7xl mx-auto">
+        <FadeUp>
+          <div className="text-center mb-16">
+            <p className="text-sm font-bold text-primary uppercase tracking-widest mb-3">Como funciona</p>
+            <h2 id="how-title" className="text-3xl sm:text-4xl lg:text-5xl font-black text-foreground mb-4 text-balance">
+              Do cadastro à nota fiscal<br />em 3 passos
+            </h2>
+            <p className="text-lg text-foreground/60 max-w-xl mx-auto text-pretty">Simples, direto e sem burocracia.</p>
+          </div>
+        </FadeUp>
+
+        <div className="relative grid grid-cols-1 md:grid-cols-3 gap-10">
+          <div className="hidden md:block absolute top-8 left-[22%] right-[22%] h-px bg-gradient-to-r from-primary/20 via-primary/50 to-primary/20" aria-hidden />
+          {steps.map((step, idx) => (
+            <FadeUp key={idx} delay={idx * 120}>
+              <div className="flex flex-col items-center text-center">
+                <div className="relative mb-6 z-10">
+                  <div className={`w-16 h-16 rounded-2xl ${step.iconBg} border-2 ${step.borderColor} flex items-center justify-center`}>
+                    <step.Icon className={`w-7 h-7 ${step.iconColor}`} aria-hidden />
+                  </div>
+                  <div className={`absolute -top-2.5 -right-2.5 w-6 h-6 rounded-full bg-white border-2 ${step.borderColor} text-xs font-black ${step.numColor} flex items-center justify-center shadow-sm`} aria-hidden>
+                    {idx + 1}
+                  </div>
                 </div>
+                <h3 className="text-xl font-bold text-foreground mb-3">{step.title}</h3>
+                <p className="text-foreground/60 text-sm leading-relaxed text-pretty max-w-xs">{step.description}</p>
+              </div>
+            </FadeUp>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
 
-                <div className="mb-8">
-                  <h3 className="text-2xl font-bold text-foreground mb-2">
-                    PRO
-                  </h3>
-                  <div>
-                    <p className="text-4xl font-bold text-foreground">
-                      {isAnnual ? "R$ 39,90" : "R$ 49,90"}
-                      <span className="text-lg text-foreground/60">/mês</span>
-                    </p>
-                    {isAnnual && (
-                      <p className="text-xs text-foreground/60 mt-2">
-                        cobrado anualmente: R$ 478,80/ano
-                      </p>
+// ─── Pricing ─────────────────────────────────────────────────────────────────
+
+const planRows = [
+  { label: "Notas fiscais/mês", free: "1 nota", pro: "Ilimitadas" },
+  { label: "Empresas", free: "1 empresa", pro: "Ilimitadas" },
+  { label: "Produtos/serviços", free: "Até 10", pro: "Ilimitados" },
+  { label: "Clientes", free: "Até 10", pro: "Ilimitados" },
+  { label: "Tipos de nota", free: "NF-e, NFC-e", pro: "NF-e, NFC-e, NFS-e" },
+  { label: "Relatórios", free: false, pro: true },
+  { label: "Suporte", free: "Comunidade", pro: "WhatsApp & Remoto" },
+  { label: "Implantação e treinamento", free: false, pro: "Grátis" },
+] as const;
+
+function Pricing() {
+  const [annual, setAnnual] = useState(false);
+
+  return (
+    <section id="pricing" className="py-24 px-4 sm:px-6 lg:px-8 bg-muted/30" aria-labelledby="pricing-title">
+      <div className="max-w-5xl mx-auto">
+        <FadeUp>
+          <div className="text-center mb-12">
+            <p className="text-sm font-bold text-primary uppercase tracking-widest mb-3">Preços</p>
+            <h2 id="pricing-title" className="text-3xl sm:text-4xl lg:text-5xl font-black text-foreground mb-4 text-balance">
+              Simples e transparente
+            </h2>
+            <p className="text-lg text-foreground/60 mb-8">Comece grátis. Escale quando precisar.</p>
+
+            <div className="inline-flex items-center gap-1 p-1 bg-muted rounded-full border border-border" role="group" aria-label="Ciclo de cobrança">
+              {([["Mensal", false], ["Anual", true]] as [string, boolean][]).map(([label, val]) => (
+                <button
+                  key={label}
+                  onClick={() => setAnnual(val)}
+                  aria-pressed={annual === val}
+                  className={`relative px-6 py-2 text-sm font-semibold rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${
+                    annual === val ? "bg-white text-foreground shadow-sm" : "text-foreground/50 hover:text-foreground"
+                  }`}
+                >
+                  {label}
+                  {val && (
+                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-success text-white text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap">
+                      -20%
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        </FadeUp>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Free */}
+          <FadeUp delay={0}>
+            <div className="h-full bg-white border border-border rounded-2xl p-8 flex flex-col">
+              <div className="mb-6">
+                <p className="text-[11px] font-black uppercase tracking-widest text-foreground/40 mb-3">Gratuito</p>
+                <div className="flex items-end gap-1 mb-2">
+                  <span className="text-5xl font-black text-foreground">R$ 0</span>
+                  <span className="text-foreground/40 text-base mb-1.5">/mês</span>
+                </div>
+                <p className="text-sm text-foreground/50">Para conhecer a plataforma</p>
+              </div>
+              <Link href="/login" className="w-full py-3 text-center text-sm font-semibold border-2 border-primary text-primary rounded-xl hover:bg-primary/5 transition-colors mb-8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 block">
+                Começar grátis
+              </Link>
+              <div className="flex-1 space-y-0">
+                {planRows.map((row, i) => (
+                  <div key={i} className="flex items-center justify-between py-3 border-b border-border/50 last:border-0">
+                    <span className="text-sm text-foreground/60">{row.label}</span>
+                    {typeof row.free === "boolean" ? (
+                      <span className="text-foreground/25 text-sm">—</span>
+                    ) : (
+                      <span className="text-sm font-medium text-foreground">{row.free}</span>
                     )}
                   </div>
-                </div>
-
-                <Link
-                  href="/login"
-                  className="w-full px-6 py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 transition mb-8"
-                >
-                  Assinar PRO
-                </Link>
-
-                <div className="space-y-4 flex-1">
-                  <p className="text-sm font-semibold text-foreground/60 mb-4">
-                    Incluído:
-                  </p>
-                  {[
-                    "Nota Fiscal de Serviço (NFS-e)",
-                    "Nota Fiscal de Venda (NF-e)",
-                    "Cupom Fiscal de Venda (NFC-e)",
-                    "Cadastro de Serviços",
-                    "Cadastro de Produtos",
-                    "Cadastro de Clientes",
-                    "Emissões e cadastros ilimitados",
-                    "Suporte via WhatsApp ou remoto",
-                    "Implantação e treinamento grátis",
-                  ].map((feature, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center space-x-3 text-foreground/70"
-                    >
-                      <Check className="w-5 h-5 text-primary flex-shrink-0" />
-                      <span className="text-sm">{feature}</span>
-                    </div>
-                  ))}
-                  <p className="text-xs text-foreground/50 pt-4 mt-4 border-t border-border">
-                    ⓘ Não inclui certificado digital
-                  </p>
-                </div>
+                ))}
               </div>
-            </FadeInSection>
-          </div>
-        </FadeInSection>
+            </div>
+          </FadeUp>
+
+          {/* Pro */}
+          <FadeUp delay={80}>
+            <div className="relative h-full bg-foreground rounded-2xl p-8 flex flex-col overflow-hidden">
+              <div className="absolute -top-10 -right-10 w-56 h-56 bg-primary/20 rounded-full blur-3xl pointer-events-none" aria-hidden />
+              <div className="absolute bottom-0 left-0 w-40 h-40 bg-primary/10 rounded-full blur-2xl pointer-events-none" aria-hidden />
+
+              <div className="relative mb-6">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-[11px] font-black uppercase tracking-widest text-white/40">PRO</p>
+                  <span className="px-3 py-1 bg-primary text-white text-xs font-bold rounded-full">Mais indicado</span>
+                </div>
+                <div className="flex items-end gap-1 mb-2">
+                  <span className="text-5xl font-black text-white tabular-nums">
+                    {annual ? "R$ 39,90" : "R$ 49,90"}
+                  </span>
+                  <span className="text-white/40 text-base mb-1.5">/mês</span>
+                </div>
+                {annual ? (
+                  <p className="text-sm text-white/50">cobrado anualmente · R$ 478,80/ano</p>
+                ) : (
+                  <p className="text-sm text-white/50">cobrado mensalmente</p>
+                )}
+              </div>
+
+              <Link href="/login" className="relative w-full py-3 text-center text-sm font-bold bg-primary text-white rounded-xl hover:bg-primary/90 transition-colors mb-8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-foreground block shadow-lg shadow-primary/30">
+                Assinar PRO →
+              </Link>
+
+              <div className="relative flex-1 space-y-0">
+                {planRows.map((row, i) => (
+                  <div key={i} className="flex items-center justify-between py-3 border-b border-white/10 last:border-0">
+                    <span className="text-sm text-white/60">{row.label}</span>
+                    {typeof row.pro === "boolean" ? (
+                      row.pro ? (
+                        <Check className="w-4 h-4 text-success" aria-label="Incluído" />
+                      ) : (
+                        <span className="text-white/20 text-sm">—</span>
+                      )
+                    ) : (
+                      <span className="text-sm font-semibold text-white">{row.pro}</span>
+                    )}
+                  </div>
+                ))}
+                <p className="text-xs text-white/30 pt-4 flex items-start gap-1.5">
+                  <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" aria-hidden />
+                  Não inclui certificado digital. O cliente deve possuir o seu próprio certificado A1.
+                </p>
+              </div>
+            </div>
+          </FadeUp>
+        </div>
       </div>
     </section>
   );
 }
 
-// FAQ Section
-function FAQ() {
-  const [openIndex, setOpenIndex] = useState<number | null>(null);
+// ─── Testimonials ─────────────────────────────────────────────────────────────
 
-  const faqs = [
-    {
-      question: "O +NOTA emite nota fiscal de verdade?",
-      answer:
-        "Sim! O +NOTA é integrado com a SEFAZ e emite NF-e, NFC-e e NFS-e com validade jurídica. Você precisa ter seu certificado digital A1.",
-    },
-    {
-      question: "Preciso de certificado digital?",
-      answer:
-        "Sim, para emissão de NF-e e NFC-e é necessário um certificado digital A1. O +NOTA não fornece o certificado, mas é compatível com qualquer certificadora credenciada.",
-    },
-    {
-      question: "Posso usar para múltiplas empresas?",
-      answer:
-        "Sim! No plano PRO você pode cadastrar quantas empresas quiser. Ideal para escritórios de contabilidade que gerenciam vários clientes.",
-    },
-    {
-      question: "Como funciona o plano gratuito?",
-      answer:
-        "O plano Free permite emitir 1 nota fiscal por mês para 1 empresa, com até 10 produtos e 10 clientes cadastrados. Ideal para testar a plataforma.",
-    },
-    {
-      question: "Posso cancelar a qualquer momento?",
-      answer:
-        "Sim, sem multa e sem burocracia. Ao cancelar, você volta automaticamente para o plano Free.",
-    },
-  ];
+const testimonials = [
+  { name: "Ana Paula Ferreira", role: "Contadora", company: "Ferreira Contabilidade", avatar: "AF", color: "bg-primary", stars: 5, text: "Reduzi o tempo de emissão em 80%. Antes levava 20 minutos por NF-e, agora são menos de 3 minutos com o +NOTA." },
+  { name: "Carlos Mendes", role: "Dono de MEI", company: "Mendes Serviços", avatar: "CM", color: "bg-blue-500", stars: 5, text: "Finalmente consigo emitir minhas próprias notas sem precisar de contador para cada emissão. Simples demais!" },
+  { name: "Juliana Costa", role: "Sócia-contadora", company: "Costa & Silva Contabilidade", avatar: "JC", color: "bg-emerald-500", stars: 5, text: "Gerencio 47 clientes no mesmo sistema. O painel multi-empresa é exatamente o que precisávamos." },
+  { name: "Roberto Alves", role: "Empresário", company: "Alves Comércio LTDA", avatar: "RA", color: "bg-violet-500", stars: 5, text: "Integração com SEFAZ impecável. Nenhuma nota foi recusada desde que migramos para o +NOTA." },
+  { name: "Fernanda Lima", role: "Microempreendedora", company: "FL Design", avatar: "FL", color: "bg-amber-500", stars: 5, text: "Suporte fantástico! Tive dúvida às 22h e responderam em menos de 1 hora. Impressionante." },
+  { name: "Marcos Oliveira", role: "Contador", company: "MO Assessoria Fiscal", avatar: "MO", color: "bg-rose-500", stars: 5, text: "Melhor custo-benefício do mercado. O plano PRO vale cada centavo para quem tem vários clientes." },
+];
 
+function Testimonials() {
+  const all = [...testimonials, ...testimonials];
   return (
-    <section
-      id="faq"
-      className="py-20 px-4 sm:px-6 lg:px-8 bg-white"
-    >
-      <div className="max-w-3xl mx-auto">
-        <FadeInSection>
-          <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
-              Perguntas frequentes
-            </h2>
-            <p className="text-lg text-foreground/60">
-              Encontre respostas para as dúvidas mais comuns
-            </p>
-          </div>
+    <section className="py-24 overflow-hidden bg-white" aria-labelledby="testimonials-title">
+      <FadeUp>
+        <div className="text-center px-4 mb-16">
+          <p className="text-sm font-bold text-primary uppercase tracking-widest mb-3">Depoimentos</p>
+          <h2 id="testimonials-title" className="text-3xl sm:text-4xl lg:text-5xl font-black text-foreground mb-4 text-balance">
+            O que dizem nossos clientes
+          </h2>
+          <p className="text-lg text-foreground/60 max-w-xl mx-auto text-pretty">
+            Mais de 500 contadores e empresas já transformaram sua gestão fiscal.
+          </p>
+        </div>
+      </FadeUp>
 
-          <div className="space-y-4">
-            {faqs.map((faq, idx) => (
-              <FadeInSection key={idx}>
-                <div className="border border-border rounded-lg overflow-hidden">
+      <div className="relative">
+        <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none" aria-hidden />
+        <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none" aria-hidden />
+
+        <div className="flex gap-5 w-max animate-marquee" aria-label="Carrossel de depoimentos">
+          {all.map((t, i) => (
+            <article
+              key={i}
+              aria-label={i < testimonials.length ? `Depoimento de ${t.name}` : undefined}
+              aria-hidden={i >= testimonials.length}
+              className="w-[300px] sm:w-[340px] flex-shrink-0 bg-white border border-border rounded-2xl p-6 shadow-sm"
+            >
+              <div className="flex gap-0.5 mb-4" aria-label={`${t.stars} estrelas`}>
+                {Array(t.stars).fill(0).map((_, j) => (
+                  <Star key={j} className="w-4 h-4 fill-warning text-warning" aria-hidden />
+                ))}
+              </div>
+              <blockquote className="text-sm text-foreground/70 leading-relaxed mb-5 text-pretty">
+                &ldquo;{t.text}&rdquo;
+              </blockquote>
+              <footer className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-full ${t.color} flex items-center justify-center text-white text-xs font-bold flex-shrink-0`} aria-hidden>
+                  {t.avatar}
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">{t.name}</p>
+                  <p className="text-xs text-foreground/50">{t.role} · {t.company}</p>
+                </div>
+              </footer>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── FAQ ─────────────────────────────────────────────────────────────────────
+
+const faqs = [
+  { q: "O +NOTA emite notas fiscais de verdade?", a: "Sim! O +NOTA é integrado com a SEFAZ e emite NF-e, NFC-e e NFS-e com plena validade jurídica. Você precisa ter seu próprio certificado digital A1 para transmissão." },
+  { q: "Preciso de certificado digital para usar?", a: "Sim, para emissão de NF-e e NFC-e é obrigatório um certificado digital A1. O +NOTA é compatível com qualquer certificadora credenciada pelo ICP-Brasil. O certificado não é fornecido pela plataforma." },
+  { q: "Posso gerenciar múltiplas empresas?", a: "Sim! No plano PRO você pode cadastrar e alternar entre quantas empresas quiser. Ideal para escritórios de contabilidade que atendem vários clientes CNPJ." },
+  { q: "O que inclui o plano gratuito?", a: "O plano Free permite emitir 1 nota fiscal por mês para 1 empresa, com até 10 produtos e 10 clientes. Perfeito para conhecer a plataforma sem compromisso." },
+  { q: "Posso cancelar a qualquer momento?", a: "Sim, sem multa e sem burocracia. Ao cancelar, você mantém o acesso até o fim do período pago e depois migra automaticamente para o plano Free." },
+];
+
+function FAQ() {
+  const [open, setOpen] = useState<number>(0);
+  return (
+    <section id="faq" className="py-24 px-4 sm:px-6 lg:px-8 bg-muted/30" aria-labelledby="faq-title">
+      <div className="max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-12 lg:gap-20">
+          <FadeUp className="lg:col-span-2">
+            <div className="lg:sticky lg:top-28">
+              <p className="text-sm font-bold text-primary uppercase tracking-widest mb-3">FAQ</p>
+              <h2 id="faq-title" className="text-3xl sm:text-4xl font-black text-foreground mb-4 text-balance">
+                Perguntas frequentes
+              </h2>
+              <p className="text-foreground/60 mb-8 text-pretty leading-relaxed">
+                Não encontrou o que procura? Nossa equipe está disponível via WhatsApp para ajudar.
+              </p>
+              <a
+                href="https://wa.me/5500000000000"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-xl font-semibold text-sm hover:bg-primary/90 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+              >
+                <MessageCircle className="w-4 h-4" aria-hidden />
+                Falar no WhatsApp
+              </a>
+            </div>
+          </FadeUp>
+
+          <FadeUp delay={100} className="lg:col-span-3">
+            <div className="space-y-3">
+              {faqs.map((faq, idx) => (
+                <div key={idx} className="bg-white border border-border rounded-xl overflow-hidden">
                   <button
-                    onClick={() =>
-                      setOpenIndex(openIndex === idx ? null : idx)
-                    }
-                    className="w-full px-6 py-4 flex items-center justify-between bg-background hover:bg-muted transition text-left focus:outline-none focus:ring-2 focus:ring-primary focus:ring-inset"
-                    aria-expanded={openIndex === idx}
-                    aria-controls={`faq-answer-${idx}`}
+                    id={`faq-btn-${idx}`}
+                    aria-expanded={open === idx}
+                    aria-controls={`faq-panel-${idx}`}
+                    onClick={() => setOpen(open === idx ? -1 : idx)}
+                    className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-muted/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset"
                   >
-                    <span className="font-semibold text-foreground">
-                      {faq.question}
-                    </span>
+                    <span className="font-semibold text-foreground pr-4">{faq.q}</span>
                     <ChevronDown
-                      className={`w-5 h-5 text-primary transition-transform flex-shrink-0 ${
-                        openIndex === idx ? "rotate-180" : ""
-                      }`}
-                      aria-hidden="true"
+                      className={`w-5 h-5 text-primary flex-shrink-0 transition-transform duration-200 ${open === idx ? "rotate-180" : ""}`}
+                      aria-hidden
                     />
                   </button>
-                  {openIndex === idx && (
+                  {open === idx && (
                     <div
-                      id={`faq-answer-${idx}`}
-                      className="px-6 py-4 bg-muted/50 border-t border-border text-foreground/70"
+                      id={`faq-panel-${idx}`}
+                      role="region"
+                      aria-labelledby={`faq-btn-${idx}`}
+                      className="px-5 pb-5 pt-1 text-sm text-foreground/60 leading-relaxed text-pretty border-t border-border/50"
                     >
-                      {faq.answer}
+                      {faq.a}
                     </div>
                   )}
                 </div>
-              </FadeInSection>
-            ))}
-          </div>
-        </FadeInSection>
+              ))}
+            </div>
+          </FadeUp>
+        </div>
       </div>
     </section>
   );
 }
 
-// Final CTA Section
+// ─── Final CTA ────────────────────────────────────────────────────────────────
+
 function FinalCTA() {
   return (
-    <section className="py-20 px-4 sm:px-6 lg:px-8 bg-background">
-      <FadeInSection>
-        <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
-            Pronto para simplificar sua emissão fiscal?
+    <section className="relative py-28 px-4 sm:px-6 lg:px-8 bg-foreground overflow-hidden" aria-label="Chamada para ação">
+      <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden>
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/15 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 right-1/4 w-64 h-64 bg-primary/10 rounded-full blur-2xl" />
+        <svg className="absolute inset-0 w-full h-full opacity-[0.04]" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern id="cta-dots" width="32" height="32" patternUnits="userSpaceOnUse">
+              <circle cx="2" cy="2" r="1.5" fill="white" />
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#cta-dots)" />
+        </svg>
+      </div>
+
+      <FadeUp>
+        <div className="relative max-w-3xl mx-auto text-center">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 text-sm font-medium text-white/70 mb-8">
+            <Zap className="w-4 h-4 text-primary" aria-hidden />
+            Sem cartão de crédito · Cancele quando quiser
+          </div>
+          <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white mb-6 text-balance leading-[1.05]">
+            Pronto para simplificar<br />sua emissão fiscal?
           </h2>
-          <p className="text-lg text-foreground/60 mb-8">
-            Junte-se a milhares de contadores e empresas que já usam o +NOTA
+          <p className="text-xl text-white/60 mb-10 text-pretty leading-relaxed">
+            Junte-se a 500+ empresas e contadores que já emitem notas fiscais com mais agilidade e menos estresse.
           </p>
-          <Link
-            href="/login"
-            className="inline-flex items-center space-x-2 px-10 py-4 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 transition text-lg"
-          >
-            <span>Criar conta grátis</span>
-            <ArrowRight className="w-6 h-6" />
-          </Link>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link
+              href="/login"
+              className="inline-flex items-center justify-center gap-2 px-10 py-4 bg-primary text-white rounded-xl font-bold text-lg hover:bg-primary/90 active:scale-[0.98] transition-all shadow-[0_0_40px_rgba(249,115,22,0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-foreground"
+            >
+              Criar conta grátis
+              <ArrowRight className="w-5 h-5" aria-hidden />
+            </Link>
+            <button className="inline-flex items-center justify-center gap-2 px-10 py-4 bg-white/10 text-white border border-white/20 rounded-xl font-bold text-lg hover:bg-white/20 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
+              Ver demonstração
+            </button>
+          </div>
+          <p className="text-sm text-white/30 mt-6">Configuração em menos de 5 minutos</p>
         </div>
-      </FadeInSection>
+      </FadeUp>
     </section>
   );
 }
 
-// Footer
+// ─── Footer ───────────────────────────────────────────────────────────────────
+
 function Footer() {
+  const [email, setEmail] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+  const handleSubmit = (e: React.FormEvent) => { e.preventDefault(); setSubmitted(true); setEmail(""); };
+  const scroll = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+
   return (
-    <footer className="bg-foreground text-primary-foreground py-16 px-4 sm:px-6 lg:px-8">
+    <footer className="bg-foreground text-white px-4 sm:px-6 lg:px-8" aria-label="Rodapé">
       <div className="max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
-          {/* Logo */}
-          <div>
-            <div className="text-2xl font-bold mb-4">
-              <span className="text-accent">+</span>NOTA
-            </div>
-            <p className="text-sm text-white/70">
-              O sistema fiscal mais simples do Brasil
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-10 py-16 border-b border-white/10">
+          {/* Brand */}
+          <div className="lg:col-span-2">
+            <Link href="/" className="flex items-center gap-0.5 mb-4 w-fit focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded">
+              <span className="text-2xl font-black text-primary">+</span>
+              <span className="text-2xl font-black text-white">NOTA</span>
+            </Link>
+            <p className="text-sm text-white/50 max-w-xs mb-6 leading-relaxed">
+              O sistema de emissão de notas fiscais mais simples do Brasil. NF-e, NFC-e e NFS-e sem complicação.
             </p>
+            <div className="flex gap-2 mb-8">
+              {([
+                [Twitter, "Twitter / X"],
+                [Linkedin, "LinkedIn"],
+                [Instagram, "Instagram"],
+              ] as [React.ElementType, string][]).map(([Icon, label]) => (
+                <button key={label} aria-label={label} className="w-9 h-9 rounded-lg bg-white/8 flex items-center justify-center text-white/50 hover:bg-white/15 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                  <Icon className="w-4 h-4" aria-hidden />
+                </button>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {([
+                [Shield, "LGPD Conforme"],
+                [Lock, "Dados Protegidos"],
+              ] as [React.ElementType, string][]).map(([Icon, text]) => (
+                <div key={text} className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 border border-white/10 rounded-full text-xs text-white/40">
+                  <Icon className="w-3.5 h-3.5" aria-hidden />
+                  {text}
+                </div>
+              ))}
+            </div>
           </div>
 
-          {/* Produto */}
+          {/* Product */}
           <div>
-            <h3 className="font-semibold mb-4 text-white">Produto</h3>
-            <ul className="space-y-2 text-sm text-white/70">
-              <li>
-                <button className="hover:text-white transition focus:outline-none focus:ring-2 focus:ring-white/30 rounded px-1 py-0.5">
-                  Features
-                </button>
-              </li>
-              <li>
-                <button className="hover:text-white transition focus:outline-none focus:ring-2 focus:ring-white/30 rounded px-1 py-0.5">
-                  Preços
-                </button>
-              </li>
-              <li>
-                <button className="hover:text-white transition focus:outline-none focus:ring-2 focus:ring-white/30 rounded px-1 py-0.5">FAQ</button>
-              </li>
+            <h3 className="text-[11px] font-bold uppercase tracking-widest text-white/30 mb-5">Produto</h3>
+            <ul className="space-y-3">
+              {([["features", "Funcionalidades"], ["pricing", "Preços"], ["faq", "FAQ"]] as [string, string][]).map(([id, label]) => (
+                <li key={id}>
+                  <button onClick={() => scroll(id)} className="text-sm text-white/50 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30 rounded">
+                    {label}
+                  </button>
+                </li>
+              ))}
             </ul>
           </div>
 
           {/* Suporte */}
           <div>
-            <h3 className="font-semibold mb-4 text-white">Suporte</h3>
-            <ul className="space-y-2 text-sm text-white/70">
-              <li>
-                <button className="hover:text-white transition flex items-center space-x-2 focus:outline-none focus:ring-2 focus:ring-white/30 rounded px-1 py-0.5">
-                  <MessageCircle className="w-4 h-4" aria-hidden="true" />
-                  <span>WhatsApp</span>
-                </button>
-              </li>
-              <li>
-                <button className="hover:text-white transition focus:outline-none focus:ring-2 focus:ring-white/30 rounded px-1 py-0.5">
-                  Central de ajuda
-                </button>
-              </li>
-              <li>
-                <button className="hover:text-white transition focus:outline-none focus:ring-2 focus:ring-white/30 rounded px-1 py-0.5">
-                  Contato
-                </button>
-              </li>
+            <h3 className="text-[11px] font-bold uppercase tracking-widest text-white/30 mb-5">Suporte</h3>
+            <ul className="space-y-3">
+              {["Central de ajuda", "WhatsApp", "Contato", "Status do sistema"].map((l) => (
+                <li key={l}>
+                  <button className="text-sm text-white/50 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30 rounded">
+                    {l}
+                  </button>
+                </li>
+              ))}
             </ul>
           </div>
 
-          {/* Legal */}
+          {/* Newsletter */}
           <div>
-            <h3 className="font-semibold mb-4 text-white">Legal</h3>
-            <ul className="space-y-2 text-sm text-white/70">
-              <li>
-                <button className="hover:text-white transition focus:outline-none focus:ring-2 focus:ring-white/30 rounded px-1 py-0.5">
-                  Termos de uso
+            <h3 className="text-[11px] font-bold uppercase tracking-widest text-white/30 mb-5">Newsletter</h3>
+            <p className="text-sm text-white/50 mb-4 leading-relaxed">
+              Dicas fiscais e novidades do sistema no seu email.
+            </p>
+            {submitted ? (
+              <div className="flex items-center gap-2 text-sm text-success">
+                <CheckCircle2 className="w-4 h-4" aria-hidden />
+                Inscrito com sucesso!
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-2" aria-label="Inscrição na newsletter">
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 pointer-events-none" aria-hidden />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="seu@email.com"
+                    required
+                    aria-label="Seu email"
+                    className="w-full pl-9 pr-3 py-2.5 bg-white/8 border border-white/15 rounded-lg text-sm text-white placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  />
+                </div>
+                <button type="submit" className="w-full py-2.5 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-primary/90 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-foreground">
+                  Inscrever-se
                 </button>
-              </li>
-              <li>
-                <button className="hover:text-white transition focus:outline-none focus:ring-2 focus:ring-white/30 rounded px-1 py-0.5">
-                  Privacidade
-                </button>
-              </li>
-              <li>
-                <button className="hover:text-white transition focus:outline-none focus:ring-2 focus:ring-white/30 rounded px-1 py-0.5">LGPD</button>
-              </li>
-            </ul>
+              </form>
+            )}
           </div>
         </div>
 
-        {/* Bottom */}
-        <div className="border-t border-white/10 pt-8 flex flex-col sm:flex-row justify-between items-center">
-          <p className="text-sm text-white/60">
-            © 2026 +NOTA. Todos os direitos reservados.
-          </p>
-          <div className="flex gap-6 mt-4 sm:mt-0 text-sm text-white/60">
-            <button className="hover:text-white transition focus:outline-none focus:ring-2 focus:ring-white/30 rounded px-1 py-0.5">Status</button>
-            <button className="hover:text-white transition focus:outline-none focus:ring-2 focus:ring-white/30 rounded px-1 py-0.5">GitHub</button>
-            <button className="hover:text-white transition focus:outline-none focus:ring-2 focus:ring-white/30 rounded px-1 py-0.5">Twitter</button>
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-6">
+          <p className="text-xs text-white/30">© 2026 +NOTA. Todos os direitos reservados.</p>
+          <div className="flex flex-wrap gap-4 justify-center">
+            {["Termos de uso", "Privacidade", "LGPD", "Cookies"].map((l) => (
+              <button key={l} className="text-xs text-white/30 hover:text-white/60 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/20 rounded">
+                {l}
+              </button>
+            ))}
           </div>
         </div>
       </div>
@@ -864,15 +1068,18 @@ function Footer() {
   );
 }
 
-// Main Page
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-white text-foreground">
       <Navbar />
       <Hero />
+      <Stats />
       <Features />
       <HowItWorks />
       <Pricing />
+      <Testimonials />
       <FAQ />
       <FinalCTA />
       <Footer />

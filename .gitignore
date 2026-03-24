@@ -46,3 +46,5 @@ storybook-static/
 
 # dist
 dist/
+
+.vercel

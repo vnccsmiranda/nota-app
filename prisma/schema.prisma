@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,33 +7,23 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ==========================================
-// Auth.js v5 Models
-// ==========================================
-
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String    @unique
-  emailVerified DateTime?
-  image         String?
-
-  // Stripe
-  stripeCustomerId       String?   @unique
+  id                     String       @id @default(cuid())
+  name                   String?
+  email                  String       @unique
+  emailVerified          DateTime?
+  image                  String?
+  password               String?
+  stripeCustomerId       String?      @unique
   stripePriceId          String?
   stripeCurrentPeriodEnd DateTime?
-
-  // Plan
-  plan         Plan         @default(FREE)
-  billingCycle BillingCycle @default(MONTHLY)
-
-  // Relations
-  accounts  Account[]
-  sessions  Session[]
-  companies Company[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  plan                   Plan         @default(FREE)
+  billingCycle           BillingCycle @default(MONTHLY)
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
+  accounts               Account[]
+  companies              Company[]
+  sessions               Session[]
 }
 
 model Account {
@@ -51,11 +38,9 @@ model Account {
   scope             String?
   id_token          String?
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([provider, providerAccountId])
 }
@@ -64,10 +49,9 @@ model Session {
   sessionToken String   @unique
   userId       String
   expires      DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 }
 
 model VerificationToken {
@@ -78,133 +62,103 @@ model VerificationToken {
   @@id([identifier, token])
 }
 
-// ==========================================
-// Business Models — +NOTA
-// ==========================================
-
 model Company {
-  id              String    @id @default(cuid())
-  cnpj            String    @unique
-  razaoSocial     String
-  nomeFantasia    String?
-  ie              String?   // Inscrição Estadual
-  im              String?   // Inscrição Municipal
-  crt             TaxRegime @default(SIMPLES_NACIONAL)
-  endereco        Json?     // {logradouro, numero, complemento, bairro, cidade, uf, cep, codigoMunicipio}
-  uf              String?
-
-  // Certificado Digital A1
+  id                  String      @id @default(cuid())
+  cnpj                String      @unique
+  razaoSocial         String
+  nomeFantasia        String?
+  ie                  String?
+  im                  String?
+  crt                 TaxRegime   @default(SIMPLES_NACIONAL)
+  endereco            Json?
+  uf                  String?
   certificateFile     Bytes?
   certificatePassword String?
   certificateExpiry   DateTime?
-
-  isActive Boolean @default(true)
-
-  // Relations
-  userId    String
-  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  customers Customer[]
-  products  Product[]
-  invoices  Invoice[]
-  taxConfigs TaxConfig[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  isActive            Boolean     @default(true)
+  userId              String
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+  user                User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  customers           Customer[]
+  invoices            Invoice[]
+  products            Product[]
+  taxConfigs          TaxConfig[]
 
   @@index([userId])
 }
 
 model Customer {
-  id        String  @id @default(cuid())
+  id        String    @id @default(cuid())
   cpfCnpj   String
   name      String
   email     String?
   phone     String?
-  address   Json?   // {logradouro, numero, complemento, bairro, cidade, uf, cep, codigoMunicipio}
-  ie        String? // Inscrição Estadual (se PJ)
-  isCompany Boolean @default(false)
-
-  // Relations
+  address   Json?
+  ie        String?
+  isCompany Boolean   @default(false)
   companyId String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   company   Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
   invoices  Invoice[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 
   @@index([companyId])
   @@index([cpfCnpj])
 }
 
 model Product {
-  id          String      @id @default(cuid())
-  code        String      // Código interno
-  name        String
-  description String?
-  ncm         String?     // Nomenclatura Comum do Mercosul
-  cfop        String?     // Código Fiscal de Operações
-  cst         String?     // Código de Situação Tributária
-  unit        String      @default("UN") // Unidade de medida
-  price       Float       @default(0)
-  gtin        String?     // Código de barras (GTIN/EAN)
-  type        ProductType @default(PRODUCT)
-
-  // Relations
+  id           String        @id @default(cuid())
+  code         String
+  name         String
+  description  String?
+  ncm          String?
+  cfop         String?
+  cst          String?
+  unit         String        @default("UN")
+  price        Float         @default(0)
+  gtin         String?
+  type         ProductType   @default(PRODUCT)
   companyId    String
-  company      Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
   invoiceItems InvoiceItem[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  company      Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   @@index([companyId])
   @@index([code])
 }
 
 model Invoice {
-  id     String       @id @default(cuid())
-  model  InvoiceModel
-  series Int          @default(1)
-  number Int          @default(0)
-  status InvoiceStatus @default(DRAFT)
-
-  // XML & Protocol
-  xmlContent        String?   @db.Text
-  xmlSigned         String?   @db.Text
+  id                String         @id @default(cuid())
+  model             InvoiceModel
+  series            Int            @default(1)
+  number            Int            @default(0)
+  status            InvoiceStatus  @default(DRAFT)
+  xmlContent        String?
+  xmlSigned         String?
   protocol          String?
-  accessKey         String?   @unique
+  accessKey         String?        @unique
   authorizationDate DateTime?
   cancelDate        DateTime?
   danfeUrl          String?
-
-  // Values
-  totalValue     Float @default(0)
-  totalIcms      Float @default(0)
-  totalPis       Float @default(0)
-  totalCofins    Float @default(0)
-  totalDiscount  Float @default(0)
-
-  // Payment
-  paymentMethod String? // 01=Dinheiro, 02=Cheque, 03=Cartão Crédito, etc.
-
-  // Contingency
-  contingencyType String?
-
-  // Additional info
-  natOp       String? // Natureza da operação (ex: "Venda de mercadoria")
-  infoComplementar String? @db.Text
-
-  // Relations
-  companyId  String
-  company    Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  customerId String?
-  customer   Customer? @relation(fields: [customerId], references: [id])
-
-  items  InvoiceItem[]
-  events InvoiceEvent[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  totalValue        Float          @default(0)
+  totalIcms         Float          @default(0)
+  totalPis          Float          @default(0)
+  totalCofins       Float          @default(0)
+  totalDiscount     Float          @default(0)
+  paymentMethod     String?
+  contingencyType   String?
+  natOp             String?
+  infoComplementar  String?
+  companyId         String
+  customerId        String?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  company           Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer          Customer?      @relation(fields: [customerId], references: [id])
+  events            InvoiceEvent[]
+  items             InvoiceItem[]
 
   @@index([companyId])
   @@index([status])
@@ -212,84 +166,63 @@ model Invoice {
 }
 
 model InvoiceItem {
-  id        String @id @default(cuid())
-  sequence  Int    @default(1) // nItem no XML
-
-  quantity  Float
-  unitPrice Float
-  totalPrice Float
-
-  // Tax info per item
-  cfop         String?
-  ncm          String?
-  cst          String?
-
-  // ICMS
-  icmsBase     Float @default(0)
-  icmsRate     Float @default(0)
-  icmsValue    Float @default(0)
-
-  // PIS
-  pisBase      Float @default(0)
-  pisRate      Float @default(0)
-  pisValue     Float @default(0)
-
-  // COFINS
-  cofinsBase   Float @default(0)
-  cofinsRate   Float @default(0)
-  cofinsValue  Float @default(0)
-
-  // Relations
-  invoiceId String
-  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-  productId String?
-  product   Product? @relation(fields: [productId], references: [id])
+  id          String   @id @default(cuid())
+  sequence    Int      @default(1)
+  quantity    Float
+  unitPrice   Float
+  totalPrice  Float
+  cfop        String?
+  ncm         String?
+  cst         String?
+  icmsBase    Float    @default(0)
+  icmsRate    Float    @default(0)
+  icmsValue   Float    @default(0)
+  pisBase     Float    @default(0)
+  pisRate     Float    @default(0)
+  pisValue    Float    @default(0)
+  cofinsBase  Float    @default(0)
+  cofinsRate  Float    @default(0)
+  cofinsValue Float    @default(0)
+  invoiceId   String
+  productId   String?
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  product     Product? @relation(fields: [productId], references: [id])
 
   @@index([invoiceId])
 }
 
 model InvoiceEvent {
-  id       String    @id @default(cuid())
-  type     EventType
-  protocol String?
-  xmlEvent String?   @db.Text
-  reason   String?
-
-  // Relations
+  id        String    @id @default(cuid())
+  type      EventType
+  protocol  String?
+  xmlEvent  String?
+  reason    String?
   invoiceId String
-  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
+  invoice   Invoice   @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 
   @@index([invoiceId])
 }
 
 model TaxConfig {
-  id          String @id @default(cuid())
-  uf          String // Estado (ex: "SP", "RJ")
+  id          String   @id @default(cuid())
+  uf          String
   cfop        String
   cstIcms     String?
   cstPis      String?
   cstCofins   String?
-  icmsRate    Float  @default(0)
-  pisRate     Float  @default(0)
-  cofinsRate  Float  @default(0)
+  icmsRate    Float    @default(0)
+  pisRate     Float    @default(0)
+  cofinsRate  Float    @default(0)
   description String?
-
-  // Relations
-  companyId String
-  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  companyId   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   @@index([companyId])
   @@index([uf])
 }
-
-// ==========================================
-// Enums
-// ==========================================
 
 enum Plan {
   FREE

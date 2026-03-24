@@ -8,6 +8,8 @@ import {
   Twitter, Linkedin, Instagram, Lock, Zap, Users, Award, TrendingUp,
   Bell, CheckCircle2, AlertCircle, ChevronRight,
 } from "lucide-react";
+import { GlowCard } from "@/components/ui/spotlight-card";
+import { Button } from "@/components/ui/button";
 
 // ─── Utilities ───────────────────────────────────────────────────────────────
 
@@ -197,7 +199,7 @@ function Navbar() {
 function Hero() {
   return (
     <section
-      className="relative pt-28 pb-0 px-4 sm:px-6 lg:px-8 overflow-hidden bg-white"
+      className="relative pt-28 pb-20 px-4 sm:px-6 lg:px-8 bg-white"
       aria-label="Início"
     >
       <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden>
@@ -305,12 +307,11 @@ function Hero() {
         <FadeUp delay={380}>
           <div className="relative max-w-5xl mx-auto">
             <div
-              className="absolute -inset-4 bg-gradient-to-t from-primary/10 via-transparent to-transparent rounded-3xl blur-2xl -z-10"
-              aria-hidden
-            />
-            <div
-              className="rounded-t-2xl border border-border/80 bg-white shadow-[0_32px_80px_-12px_rgba(0,0,0,0.14),0_0_0_1px_rgba(0,0,0,0.03)] overflow-hidden"
-              style={{ transform: "perspective(1800px) rotateX(3deg)" }}
+              className="rounded-t-2xl border border-border/80 bg-white overflow-hidden"
+              style={{
+                transform: "perspective(1800px) rotateX(3deg)",
+                boxShadow: "0 48px 120px -8px rgba(245, 94, 0, 0.09), 0 0 100px 20px rgba(245, 94, 0, 0.04), 0 0 0 1px rgba(0,0,0,0.03)",
+              }}
             >
               {/* Browser bar */}
               <div className="flex items-center gap-3 px-5 py-3 bg-muted border-b border-border">
@@ -706,7 +707,26 @@ function Pricing() {
 
           {/* Pro */}
           <FadeUp delay={80}>
-            <div className="relative h-full bg-foreground rounded-2xl p-8 flex flex-col overflow-hidden">
+            <GlowCard
+              customSize
+              noLayout
+              glowColor="orange"
+              className="h-full p-8"
+              style={{
+                "--backdrop": "hsl(0 0% 10%)",
+                "--backup-border": "hsl(22 100% 48% / 0.4)",
+                "--bg-spot-opacity": "0.15",
+                "--border-spot-opacity": "1",
+                "--border-light-opacity": "0.25",
+                "--glow-radius": "16",
+                "--border": "2.5",
+                "--base": "22",
+                "--spread": "0",
+                "--size": "450",
+                "--saturation": "100",
+                "--lightness": "48",
+              } as React.CSSProperties}
+            >
               <div className="absolute -top-10 -right-10 w-56 h-56 bg-primary/20 rounded-full blur-3xl pointer-events-none" aria-hidden />
               <div className="absolute bottom-0 left-0 w-40 h-40 bg-primary/10 rounded-full blur-2xl pointer-events-none" aria-hidden />
 
@@ -728,9 +748,9 @@ function Pricing() {
                 )}
               </div>
 
-              <Link href="/login" className="relative w-full py-3 text-center text-sm font-bold bg-primary text-white rounded-xl hover:bg-primary/90 transition-colors mb-8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-foreground block shadow-lg shadow-primary/30">
-                Assinar PRO →
-              </Link>
+              <Button asChild size="lg" className="relative w-full mb-8 shadow-lg shadow-primary/30">
+                <Link href="/login">Assinar PRO →</Link>
+              </Button>
 
               <div className="relative flex-1 space-y-0">
                 {planRows.map((row, i) => (
@@ -752,7 +772,7 @@ function Pricing() {
                   Não inclui certificado digital. O cliente deve possuir o seu próprio certificado A1.
                 </p>
               </div>
-            </div>
+            </GlowCard>
           </FadeUp>
         </div>
       </div>

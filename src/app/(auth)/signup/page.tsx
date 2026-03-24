@@ -18,30 +18,58 @@ function GoogleIcon() {
   );
 }
 
-export default function LoginPage() {
+export default function SignupPage() {
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     setError("");
 
-    const res = await signIn("credentials", {
+    if (password.length < 8) {
+      setError("A senha deve ter ao menos 8 caracteres.");
+      return;
+    }
+    if (password !== confirm) {
+      setError("As senhas não coincidem.");
+      return;
+    }
+
+    setIsLoading(true);
+
+    const res = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, email, password }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      setError(data.error ?? "Erro ao criar conta.");
+      setIsLoading(false);
+      return;
+    }
+
+    // Login automático após cadastro
+    const loginRes = await signIn("credentials", {
       email,
       password,
       callbackUrl: "/dashboard",
       redirect: false,
     });
 
-    if (res?.error) {
-      setError("Email ou senha incorretos. Verifique seus dados e tente novamente.");
+    if (loginRes?.url) {
+      window.location.href = loginRes.url;
+    } else {
+      setSuccess(true);
       setIsLoading(false);
-    } else if (res?.url) {
-      window.location.href = res.url;
     }
   };
 
@@ -49,6 +77,33 @@ export default function LoginPage() {
     setIsGoogleLoading(true);
     await signIn("google", { callbackUrl: "/dashboard" });
   };
+
+  if (success) {
+    return (
+      <section className="bg-muted min-h-screen">
+        <div className="flex min-h-screen items-center justify-center px-4">
+          <div className="bg-background flex w-full max-w-sm flex-col items-center gap-y-6 rounded-xl border border-border px-6 py-12 shadow-md text-center">
+            <div className="flex items-center gap-1">
+              <span className="text-3xl font-bold text-primary">+</span>
+              <span className="text-3xl font-bold text-foreground">NOTA</span>
+            </div>
+            <div className="flex flex-col gap-2">
+              <p className="text-lg font-semibold text-foreground">Conta criada! 🎉</p>
+              <p className="text-sm text-muted-foreground">
+                Acesse sua conta para começar a emitir notas fiscais.
+              </p>
+            </div>
+            <Link
+              href="/login"
+              className="w-full rounded-lg bg-primary px-4 py-2.5 text-center text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              Ir para o login
+            </Link>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="bg-muted min-h-screen">
@@ -61,7 +116,7 @@ export default function LoginPage() {
               <span className="text-3xl font-bold text-primary">+</span>
               <span className="text-3xl font-bold text-foreground">NOTA</span>
             </Link>
-            <p className="text-sm text-muted-foreground">Entrar na sua conta</p>
+            <p className="text-sm text-muted-foreground">Crie sua conta gratuita</p>
           </div>
 
           {/* Google OAuth */}
@@ -71,7 +126,7 @@ export default function LoginPage() {
             className="w-full gap-2 focus:ring-2 focus:ring-primary"
             onClick={handleGoogle}
             disabled={isGoogleLoading || isLoading}
-            aria-label="Entrar com Google"
+            aria-label="Cadastrar com Google"
           >
             <GoogleIcon />
             {isGoogleLoading ? "Redirecionando..." : "Continuar com Google"}
@@ -80,12 +135,26 @@ export default function LoginPage() {
           {/* Divisor */}
           <div className="flex w-full items-center gap-3">
             <div className="h-px flex-1 bg-border" />
-            <span className="text-xs text-muted-foreground">ou entre com email</span>
+            <span className="text-xs text-muted-foreground">ou cadastre com email</span>
             <div className="h-px flex-1 bg-border" />
           </div>
 
-          {/* Form email/senha */}
+          {/* Form */}
           <form onSubmit={handleSubmit} className="flex w-full flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="name">Nome</Label>
+              <Input
+                id="name"
+                type="text"
+                placeholder="Seu nome completo"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                disabled={isLoading || isGoogleLoading}
+                autoComplete="name"
+                className="focus:ring-2 focus:ring-primary"
+              />
+            </div>
+
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -106,12 +175,27 @@ export default function LoginPage() {
               <Input
                 id="password"
                 type="password"
-                placeholder="••••••••"
+                placeholder="Mínimo 8 caracteres"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={isLoading || isGoogleLoading}
                 required
-                autoComplete="current-password"
+                autoComplete="new-password"
+                className="focus:ring-2 focus:ring-primary"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="confirm">Confirmar senha</Label>
+              <Input
+                id="confirm"
+                type="password"
+                placeholder="Repita a senha"
+                value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
+                disabled={isLoading || isGoogleLoading}
+                required
+                autoComplete="new-password"
                 className="focus:ring-2 focus:ring-primary"
               />
             </div>
@@ -125,19 +209,19 @@ export default function LoginPage() {
             <Button
               type="submit"
               className="w-full mt-1"
-              disabled={isLoading || isGoogleLoading || !email || !password}
+              disabled={isLoading || isGoogleLoading || !email || !password || !confirm}
             >
-              {isLoading ? "Entrando..." : "Entrar"}
+              {isLoading ? "Criando conta..." : "Criar conta grátis"}
             </Button>
           </form>
 
           <p className="text-muted-foreground flex justify-center gap-1 text-sm">
-            Não tem conta?{" "}
+            Já tem conta?{" "}
             <Link
-              href="/signup"
+              href="/login"
               className="text-primary font-medium hover:underline focus:outline-none focus:ring-2 focus:ring-primary rounded"
             >
-              Criar conta grátis
+              Entrar
             </Link>
           </p>
         </div>

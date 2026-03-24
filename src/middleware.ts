@@ -10,6 +10,7 @@ import type { NextRequest } from "next/server";
 const publicRoutes = [
   "/",
   "/login",
+  "/signup",
   "/pricing",
   "/api/auth",
   "/api/stripe/webhook",

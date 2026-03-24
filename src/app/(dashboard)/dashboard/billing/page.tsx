@@ -29,7 +29,7 @@ const freeFeatures = [
 export default function BillingPage() {
   const [cycle, setCycle] = useState<"monthly" | "yearly">("yearly");
   const [isLoading, setIsLoading] = useState(false);
-  const currentPlan = "FREE";
+  const currentPlan: string = "FREE";
 
   const handleCheckout = async () => {
     setIsLoading(true);

@@ -4,6 +4,17 @@ import Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 
+type StripeSubscriptionRaw = Record<string, unknown> & {
+  items: { data: Array<{ price: { id: string } }> };
+  customer?: string;
+};
+
+function getPeriodEnd(sub: StripeSubscriptionRaw): number {
+  const periodEnd = (sub as Record<string, unknown>).current_period_end;
+  if (typeof periodEnd === "number") return periodEnd * 1000;
+  return Date.now() + 30 * 24 * 60 * 60 * 1000;
+}
+
 export async function POST(req: Request) {
   const body = await req.text();
   const headersList = await headers();
@@ -37,40 +48,32 @@ export async function POST(req: Request) {
 
         const subscription = await stripe.subscriptions.retrieve(
           session.subscription as string
-        );
+        ) as unknown as StripeSubscriptionRaw;
 
         await prisma.user.update({
           where: { stripeCustomerId: session.customer as string },
           data: {
             plan: "PRO",
             stripePriceId: subscription.items.data[0]?.price.id,
-            stripeCurrentPeriodEnd: new Date(
-              subscription.items.data[0]?.period?.end
-                ? subscription.items.data[0].period.end * 1000
-                : Date.now() + 30 * 24 * 60 * 60 * 1000
-            ),
+            stripeCurrentPeriodEnd: new Date(getPeriodEnd(subscription)),
           },
         });
         break;
       }
 
       case "invoice.paid": {
-        const invoice = event.data.object as Stripe.Invoice;
+        const invoice = event.data.object as unknown as Record<string, unknown>;
         if (!invoice.customer || !invoice.subscription) break;
 
         const subscription = await stripe.subscriptions.retrieve(
           invoice.subscription as string
-        );
+        ) as unknown as StripeSubscriptionRaw;
 
         await prisma.user.update({
           where: { stripeCustomerId: invoice.customer as string },
           data: {
             plan: "PRO",
-            stripeCurrentPeriodEnd: new Date(
-              subscription.items.data[0]?.period?.end
-                ? subscription.items.data[0].period.end * 1000
-                : Date.now() + 30 * 24 * 60 * 60 * 1000
-            ),
+            stripeCurrentPeriodEnd: new Date(getPeriodEnd(subscription)),
           },
         });
         break;

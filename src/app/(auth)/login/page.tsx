@@ -30,6 +30,42 @@ export default function LoginPage() {
     setIsLoading(true);
     setError("");
 
+    // Validação básica antes de chamar a API
+    if (!email.trim()) {
+      setError("Por favor, informe seu email.");
+      setIsLoading(false);
+      return;
+    }
+    if (!password) {
+      setError("Por favor, informe sua senha.");
+      setIsLoading(false);
+      return;
+    }
+
+    // Verifica se o email existe antes de tentar o login
+    try {
+      const checkRes = await fetch("/api/auth/check-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const checkData = await checkRes.json();
+
+      if (!checkRes.ok || !checkData.exists) {
+        setError("Não encontramos uma conta com esse email. Deseja criar uma conta?");
+        setIsLoading(false);
+        return;
+      }
+
+      if (!checkData.hasPassword) {
+        setError("Essa conta foi criada via Google. Use o botão 'Continuar com Google' para entrar.");
+        setIsLoading(false);
+        return;
+      }
+    } catch {
+      // Se a rota não existir ainda, continua o fluxo normal
+    }
+
     const res = await signIn("credentials", {
       email,
       password,
@@ -38,7 +74,7 @@ export default function LoginPage() {
     });
 
     if (res?.error) {
-      setError("Email ou senha incorretos. Verifique seus dados e tente novamente.");
+      setError("Senha incorreta. Verifique e tente novamente.");
       setIsLoading(false);
     } else if (res?.url) {
       window.location.href = res.url;

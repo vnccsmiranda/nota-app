@@ -52,7 +52,13 @@ export default function SignupPage() {
     const data = await res.json();
 
     if (!res.ok) {
-      setError(data.error ?? "Erro ao criar conta.");
+      if (res.status === 409) {
+        setError("Esse email já está cadastrado. Tente fazer login ou use o Google.");
+      } else if (res.status === 400) {
+        setError(data.error ?? "Verifique os dados e tente novamente.");
+      } else {
+        setError("Não foi possível criar sua conta agora. Tente novamente em instantes.");
+      }
       setIsLoading(false);
       return;
     }
